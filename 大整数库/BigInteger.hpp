@@ -4,7 +4,6 @@
 #include<algorithm>
 #include<cstdio>
 using namespace std;
-typedef long long ll;
 const int N = 4e6 + 10;
 const int g = 3,mod = 998244353,gi = 332748118;
 
@@ -34,9 +33,10 @@ public:
 	friend BigInteger operator * (BigInteger a, BigInteger b); // a * b
 	friend BigInteger operator / (BigInteger a, BigInteger b); // a / b
 	friend BigInteger operator % (BigInteger a, BigInteger b); // a % b
-	BigInteger pow(BigInteger b, BigInteger mod); // a ^ b mod p
+	BigInteger pow(BigInteger b, BigInteger m); // a ^ b mod p
 	BigInteger abs() { return BigInteger(false,*this); }  //|a|
-	BigInteger inv(BigInteger mod);   
+	BigInteger inv(BigInteger m);
+	bool IsOdd(); //判断奇偶
 };
 
 BigInteger::BigInteger(string temp) {
@@ -161,26 +161,29 @@ BigInteger operator - (BigInteger a, BigInteger b){
 }
 
 // a * b
-ll qpow(ll a,ll b){
-  ll ans = 1;
-  for(;b;a = a * a % mod,b >>= 1)
-    if(b & 1) ans = ans * a % mod;
-  return ans;
+long long qpow(long long a,long long b){
+  	long long ans = 1;
+  	while(b){
+		if(b & 1) ans = ans * a % mod;
+		a = a * a % mod;
+		b >>= 1;
+	}
+  	return ans;
 }
 
-ll R[N],ni;
-void NTT(ll A[],int n,int op){ //op为虚部符号，op为1时FFT，op为-1时IFFT
+long long R[N],ni,f[N],h[N];
+void NTT(long long A[],int n,int op){ //op为虚部符号，op为1时FFT，op为-1时IFFT
 	for(int i = 0;i < n;i++)
 		R[i] = R[i / 2] / 2 + (i & 1) * (n / 2);
 	for(int i = 0;i < n;i++)
 		if(i < R[i]) swap(A[i],A[R[i]]);
 
 	for(int i = 2;i <= n;i <<= 1){
-    ll g1 = qpow(op == 1 ? g : gi,(mod - 1) / i);
+    long long g1 = qpow(op == 1 ? g : gi,(mod - 1) / i);
     for(int j = 0;j < n;j += i){
-      ll gk = 1;
+      long long gk = 1;
       for(int k = j;k < j + i / 2;k++){
-        ll x = A[k],y = gk * A[k + i / 2] % mod;
+        long long x = A[k],y = gk * A[k + i / 2] % mod;
         A[k] = (x + y) % mod;
 		A[k + i / 2] = (x - y + mod) % mod;
         gk = gk * g1 % mod;
@@ -191,21 +194,27 @@ void NTT(ll A[],int n,int op){ //op为虚部符号，op为1时FFT，op为-1时IF
 
 BigInteger operator * (BigInteger a,BigInteger b){
     BigInteger ans;
-	ll f[1000] = {0},h[1000] = {0};
-	for(int i = 0;i < a.num.size();i++)  //转换为多项式
-		f[i] = a.num[i];
-	for(int i = 0;i < b.num.size();i++) 
-		h[i] = b.num[i];
-	
+	if(a.sign ^ b.sign) ans.sign = true;
 	int len = 1 << max((int)ceil(log2(a.num.size() + b.num.size())),1);  //FFT需要项数为2的整数次方倍,len为第一个大于a.size() + b.size()的二的正整数次方
     ni = qpow(len,mod - 2);
+	for(int i = 0;i < 2 * len;i++){  //转换为多项式
+		if(i < a.num.size()) f[i] = a.num[i];
+		else f[i] = 0;
+	}
+	for(int i = 0;i < 2 * len;i++){
+		if(i < b.num.size()) h[i] = b.num[i];
+		else h[i] = 0;
+	}
+
 	NTT(f,len,1),NTT(h,len,1);  //系数表达转点值表达
+
 	for(int i = 0;i <= len;i++)
 		f[i] = (f[i] * h[i]) % mod;
+
 	NTT(f,len,-1);  //点值表达转系数表达
 	for(int i = 0;i <= a.num.size() + b.num.size();i++) f[i] = f[i] * ni % mod;
 
-	ll last = 0;
+	long long last = 0;
 	for(int i = 0;i <= a.num.size() + b.num.size();i++){
 		last += f[i];
 		ans.num.push_back((int)last % 10);
@@ -240,20 +249,27 @@ BigInteger operator / (BigInteger a,BigInteger b){
 	return ans;
 }
 
-
 // a % b
 BigInteger operator % (BigInteger a,BigInteger b){
 	if(a == b) return BigInteger(0);
 	return a - b * (a / b);
 }
 
+bool BigInteger::IsOdd(){
+	if(num[0] & 1) return true;
+	return false;
+}
+
 // a ^ b mod p
-BigInteger BigInteger::pow(BigInteger b,BigInteger mod){
-	if(b.IsZero()) return BigInteger(1);
-	if(b == BigInteger(1)) return (*this) % mod;
-	BigInteger temp = (*this).pow(b / BigInteger(2),mod) % mod;
-	if(b.num[0] % 2 == 0) return (temp * temp) % mod;
-	return (((temp * temp) % mod) * (*this)) % mod;
+BigInteger BigInteger::pow(BigInteger b,BigInteger m){
+	BigInteger ans(1);
+	BigInteger a = *this;
+	while(!b.IsZero()){
+		if(b.IsOdd()) ans = (ans * a) % m;
+		b = b / BigInteger(2);
+		a = (a * a) % m;
+	}
+  	return ans;
 }
 
 //gcd(a,b)
@@ -271,16 +287,13 @@ BigInteger exgcd(BigInteger a,BigInteger b,BigInteger &x,BigInteger &y){
 		y = BigInteger(0);
 		return a;
 	}
-	BigInteger d = exgcd(b,a % b,x,y);
-	BigInteger temp = x;
-	x = y;
-	y = temp - (a / b) * y;
+	BigInteger d = exgcd(b,a % b,y,x);
+	y = y - (a / b) * x;
 	return d;
 }
 
-BigInteger BigInteger::inv(BigInteger mod){
+BigInteger BigInteger::inv(BigInteger m){
 	BigInteger x,y;
-	exgcd((*this),mod,x,y);
-	return (x % mod + mod) % mod;
+	exgcd((*this),m,x,y);
+	return (x % m + m) % m;
 }
-
