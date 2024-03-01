@@ -8,39 +8,38 @@ const int N = 4e6 + 10;
 const int g = 3,mod = 998244353,gi = 332748118;
 
 class BigInteger {
-private:
-	vector<int> num;  //从低位到高位存储每一位数字
-	bool sign;        //符号位(+:false,-:true)
-public:
-	BigInteger() { sign = false; };
-	BigInteger(bool s, BigInteger t) : sign(s), num(t.num) {};
-	BigInteger(string temp);
-	BigInteger(int temp);
-	friend istream & operator>>( istream &input,BigInteger &a);
-	friend ostream & operator<<(ostream &output,BigInteger a);
-	bool IsZero();  //判零
-	friend bool operator == (BigInteger a, BigInteger b);
-    friend bool operator <= (BigInteger a, BigInteger b);
-	friend bool operator < (BigInteger a, BigInteger b){return (a <= b && !(a == b));};
-    friend bool operator >= (BigInteger a, BigInteger b){return !(a < b);};
-	friend bool operator > (BigInteger a, BigInteger b){return (a >= b && !(a == b));};
-	BigInteger operator + () const { return *this; }  // +a
-	BigInteger operator - () const { return BigInteger(!sign, *this); } // -a
-	friend BigInteger operator + (BigInteger a, BigInteger b); // a + b
-	BigInteger add(BigInteger b);
-	friend BigInteger operator - (BigInteger a, BigInteger b); // a - b
-	BigInteger sub(BigInteger b);
-	friend BigInteger operator * (BigInteger a, BigInteger b); // a * b
-	friend BigInteger operator / (BigInteger a, BigInteger b); // a / b
-	friend BigInteger operator % (BigInteger a, BigInteger b); // a % b
-	BigInteger pow(BigInteger b, BigInteger m); // a ^ b mod p
-	BigInteger abs() { return BigInteger(false,*this); }  //|a|
-	BigInteger inv(BigInteger m);
-	bool IsOdd(); //判断奇偶
+	private:
+		vector<int> num;  //从低位到高位存储每一位数字
+		bool sign;        //符号位(+:false,-:true)
+	public:
+		BigInteger() { sign = false; };
+		BigInteger(bool s, BigInteger t) : sign(s), num(t.num) {};
+		BigInteger(string temp);
+		BigInteger(int temp);
+		friend istream & operator>>( istream &input,BigInteger &a);
+		friend ostream & operator<<(ostream &output,BigInteger a);
+		bool IsZero();  //判零
+		friend bool operator == (BigInteger a, BigInteger b);
+		friend bool operator <= (BigInteger a, BigInteger b);
+		friend bool operator < (BigInteger a, BigInteger b){return (a <= b && !(a == b));};
+		friend bool operator >= (BigInteger a, BigInteger b){return !(a < b);};
+		friend bool operator > (BigInteger a, BigInteger b){return (a >= b && !(a == b));};
+		BigInteger operator + () const { return *this; }  // +a
+		BigInteger operator - () const { return BigInteger(!sign, *this); } // -a
+		friend BigInteger operator + (BigInteger a, BigInteger b); // a + b
+		BigInteger add(BigInteger b);
+		friend BigInteger operator - (BigInteger a, BigInteger b); // a - b
+		BigInteger sub(BigInteger b);
+		friend BigInteger operator * (BigInteger a, BigInteger b); // a * b
+		friend BigInteger operator / (BigInteger a, BigInteger b); // a / b
+		friend BigInteger operator % (BigInteger a, BigInteger b); // a % b
+		BigInteger pow(BigInteger b, BigInteger m); // a ^ b mod p
+		BigInteger abs() { return BigInteger(false,*this); }  //|a|
+		BigInteger inv(BigInteger m);
+		bool IsOdd(); //判断奇偶
 };
 
-BigInteger::BigInteger(string temp) {
-	sign = false;
+BigInteger::BigInteger(string temp) {	sign = false;
 	if (temp[0] == '-') {
 		sign = true;
 		temp.erase(temp.begin());
@@ -62,7 +61,7 @@ BigInteger::BigInteger(int temp) {
 	}
 }
 
-istream & operator>>( istream &input,BigInteger &a ){
+istream & operator>>(istream &input,BigInteger &a){
 	char ch = getchar();
     while(ch < '0' || ch > '9'){
         if(ch == '-')
@@ -172,30 +171,30 @@ long long qpow(long long a,long long b){
 }
 
 long long R[N],ni,f[N],h[N];
-void NTT(long long A[],int n,int op){ //op为虚部符号，op为1时FFT，op为-1时IFFT
+void NTT(long long A[],int n,int op){ //op为虚部符号，op为1时FFT/NTT，op为-1时IFFT/INTT
 	for(int i = 0;i < n;i++)
 		R[i] = R[i / 2] / 2 + (i & 1) * (n / 2);
 	for(int i = 0;i < n;i++)
 		if(i < R[i]) swap(A[i],A[R[i]]);
 
 	for(int i = 2;i <= n;i <<= 1){
-    long long g1 = qpow(op == 1 ? g : gi,(mod - 1) / i);
-    for(int j = 0;j < n;j += i){
-      long long gk = 1;
-      for(int k = j;k < j + i / 2;k++){
-        long long x = A[k],y = gk * A[k + i / 2] % mod;
-        A[k] = (x + y) % mod;
-		A[k + i / 2] = (x - y + mod) % mod;
-        gk = gk * g1 % mod;
-      }
-    }
+		long long g1 = qpow(op == 1 ? g : gi,(mod - 1) / i);
+		for(int j = 0;j < n;j += i){
+			long long gk = 1;
+			for(int k = j;k < j + i / 2;k++){
+				long long x = A[k],y = gk * A[k + i / 2] % mod;
+				A[k] = (x + y) % mod;
+				A[k + i / 2] = (x - y + mod) % mod;
+				gk = gk * g1 % mod;
+			}
+		}
   }
 }
 
 BigInteger operator * (BigInteger a,BigInteger b){
     BigInteger ans;
 	if(a.sign ^ b.sign) ans.sign = true;
-	int len = 1 << max((int)ceil(log2(a.num.size() + b.num.size())),1);  //FFT需要项数为2的整数次方倍,len为第一个大于a.size() + b.size()的二的正整数次方
+	int len = 1 << max((int)ceil(log2(a.num.size() + b.num.size())),1);  //FFT/NTT需要项数为2的整数次方倍,len为第一个大于a.size() + b.size()的二的正整数次方
     ni = qpow(len,mod - 2);
 	for(int i = 0;i < 2 * len;i++){  //转换为多项式
 		if(i < a.num.size()) f[i] = a.num[i];
